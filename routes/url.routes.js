@@ -2,8 +2,17 @@ import express from "express";
 import { shortenPostRequestBodySchema } from "../validations/request.validation.js";
 import { nanoid } from "nanoid";
 import { ensureAuthenticated } from "../middlewares/auth.middleware.js";
-import { shortenUrl,getAllCodes, redirectToUrl,deleteUrl } from "../services/url.service.js";
+import {
+  shortenUrl,
+  getAllCodes,
+  redirectToUrl,
+  deleteUrl,
+  updateCode
+} from "../services/url.service.js";
+import { urlsTable } from "../models/url.model.js";
+import { eq, and } from "drizzle-orm";
 const urlRoutes = express.Router();
+import { db } from "../db/index.js";
 
 urlRoutes.post("/shorten", ensureAuthenticated, async function (req, res) {
   const validationResult = await shortenPostRequestBodySchema.safeParseAsync(
@@ -29,23 +38,36 @@ urlRoutes.post("/shorten", ensureAuthenticated, async function (req, res) {
   });
 });
 
-urlRoutes.delete('/:id', ensureAuthenticated , async function(req,res){
+urlRoutes.delete("/:id", ensureAuthenticated, async function (req, res) {
   const id = req.params.id;
-  const result = deleteUrl(id, req.user.id);
+  await deleteUrl(id, req.user.id);
   return res.status(200).json({
-    deleted:true
-  }) 
-})
+    deleted: true,
+  });
+});
 
-urlRoutes.get('/codes', ensureAuthenticated, async function(req, res){
+urlRoutes.patch("/:id", ensureAuthenticated, async function (req, res) {
+  const id = req.params.id;
+  const code = req.body.code;
+  const result = await updateCode(id, req.user.id, code);
+  return res.status(200).json({
+    Updated: true,
+  });
+});
+
+urlRoutes.get("/codes", ensureAuthenticated, async function (req, res) {
   const codes = await getAllCodes(req.user.id);
-  return res.json({codes});
-})
+  return res.json({ codes });
+});
 urlRoutes.get("/:shortCode", async function (req, res) {
   const code = req.params.shortCode;
   const result = await redirectToUrl(code);
-  return res.redirect(result); 
+  if(!result){
+    return res.status(404).json({
+      error:"Invalid URL",
+    });
+  }
+  return res.redirect(result);
 });
-
 
 export default urlRoutes;

@@ -29,9 +29,7 @@ export async function redirectToUrl(code){
     .from(urlsTable)
     .where(eq(urlsTable.shortCode, code));
   if (!result) {
-    return res.status(404).json({
-      error: "Invalid URL",
-    });
+    return null;
   }
   return result.targetURL;
 }
@@ -41,4 +39,12 @@ export async function deleteUrl(id, userId){
       eq(urlsTable.userId, userId)
     ));
    return result;
+}
+
+export async function updateCode(id, userId, code ){
+  const result = await db
+    .update(urlsTable)
+    .set({ shortCode: code })
+    .where(and(eq(urlsTable.id, id), eq(urlsTable.userId, userId)));
+  return result
 }
